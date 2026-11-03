@@ -1,0 +1,147 @@
+
+@page "/processos/cadastro"
+@page "/processos/editar/{Id:int}"
+@rendermode InteractiveServer
+
+@using appwebGustavoMoreira.Models
+@using appwebGustavoMoreira.DAO
+
+@inject ProcessoDAO dao
+@inject NavigationManager NavigationManager
+
+<PageTitle>@Titulo - Sistema de Controle de Processos</PageTitle>
+
+<h2 class="fw-bold mb-4">@Titulo</h2>
+
+@if (Id.HasValue && !processoEncontrado)
+{
+    <div class="alert alert-warning">
+        Processo não encontrado.
+        <a href="/processos">Voltar para a lista</a>
+    </div>
+}
+else
+{
+    <div class="custom-table-card p-4">
+
+        <EditForm Model="processo" OnValidSubmit="Salvar">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label class="form-label">Número do processo</label>
+                    <InputText class="form-control"
+                               @bind-Value="processo.Numero" />
+                    <ValidationMessage For="() => processo.Numero" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Data</label>
+                    <InputDate class="form-control"
+                               @bind-Value="processo.Data" />
+                    <ValidationMessage For="() => processo.Data" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Interessado</label>
+                    <InputText class="form-control"
+                               @bind-Value="processo.Interessado" />
+                    <ValidationMessage For="() => processo.Interessado" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Assunto</label>
+                    <InputText class="form-control"
+                               @bind-Value="processo.Assunto" />
+                    <ValidationMessage For="() => processo.Assunto" />
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label">Descrição</label>
+                    <InputTextArea class="form-control"
+                                   rows="4"
+                                   @bind-Value="processo.Descricao" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Situação</label>
+                    <InputSelect class="form-select"
+                                 @bind-Value="processo.Situacao">
+                        <option value="Aberto">Aberto</option>
+                        <option value="Em análise">Em análise</option>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Concluído">Concluído</option>
+                        <option value="Arquivado">Arquivado</option>
+                    </InputSelect>
+                </div>
+
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i>
+                    @(Id.HasValue ? "Atualizar" : "Salvar")
+                </button>
+
+                <a href="/processos" class="btn btn-light border">
+                    Cancelar
+                </a>
+
+            </div>
+
+        </EditForm>
+
+    </div>
+}
+
+@code {
+    private Processo processo = new();
+    private bool processoEncontrado = true;
+
+    [Parameter]
+    public int? Id { get; set; }
+
+    private string Titulo =>
+        Id.HasValue ? "Editar Processo" : "Cadastro de Processo";
+
+    protected override void OnParametersSet()
+    {
+        if (!Id.HasValue)
+        {
+            processo = new Processo
+            {
+                Data = DateOnly.FromDateTime(DateTime.Today),
+                Situacao = "Aberto"
+            };
+
+            processoEncontrado = true;
+            return;
+        }
+
+        var processoCarregado = dao.ObterPorId(Id.Value);
+
+        processoEncontrado = processoCarregado is not null;
+
+        if (processoCarregado is not null)
+        {
+            processo = processoCarregado;
+        }
+    }
+
+    private void Salvar()
+    {
+        if (Id.HasValue)
+        {
+            dao.Atualizar(processo);
+        }
+        else
+        {
+            dao.Inserir(processo);
+        }
+
+        NavigationManager.NavigateTo("/processos");
+    }
+}
